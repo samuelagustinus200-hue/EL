@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>SIAHAAN22 PDF Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --navy-950:#050a16;
+    --navy-900:#0a1428;
+    --navy-800:#0f1d38;
+    --navy-700:#152a4d;
+    --navy-600:#1c3a68;
+    --navy-accent:#2f5fa8;
+    --ink:#02040a;
+    --paper:#eef1f8;
+    --paper-dim:#8f9bbd;
+    --paper-faint:#5f6a8c;
+    --red:#d9433c;
+    --red-soft:rgba(217,67,60,0.12);
+    --green:#28a86a;
+    --green-soft:rgba(40,168,106,0.12);
+    --line:rgba(238,241,248,0.08);
+    --line-strong:rgba(238,241,248,0.16);
+    --font-display:'Sora',sans-serif;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'JetBrains Mono',monospace;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--navy-950);color:var(--paper);font-family:var(--font-body);}
+  ::-webkit-scrollbar{width:7px;height:7px;}
+  ::-webkit-scrollbar-thumb{background:var(--navy-700);border-radius:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  .app{display:grid;grid-template-columns:224px 1fr;height:100vh;}
+
+  /* ---- Sidebar (desktop) ---- */
+  .sidebar{background:linear-gradient(180deg,var(--navy-900),var(--navy-950));border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 12px;}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 20px;}
+  .brand-mark{width:32px;height:32px;border-radius:9px;flex-shrink:0;background:linear-gradient(135deg,var(--navy-accent),var(--navy-700));border:1px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:11.5px;color:#fff;position:relative;}
+  .brand-mark::after{content:"";position:absolute;inset:0;border-radius:9px;padding:1px;background:linear-gradient(135deg,var(--red),var(--green));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.7;}
+  .brand-text{font-family:var(--font-display);font-weight:700;font-size:14px;line-height:1.25;}
+  .brand-text small{display:block;font-family:var(--font-body);font-weight:500;font-size:10px;color:var(--paper-dim);}
+
+  .navlabel{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--paper-faint);padding:12px 10px 7px;}
+  .navlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;}
+  .navlist button{width:100%;display:flex;align-items:center;gap:10px;background:transparent;border:none;color:var(--paper-dim);cursor:pointer;padding:9px 10px;border-radius:10px;font-family:var(--font-body);font-size:12.8px;font-weight:600;text-align:left;transition:.14s;}
+  .navlist button:hover{background:rgba(255,255,255,0.04);color:var(--paper);}
+  .navlist button.active{background:var(--navy-700);color:#fff;}
+  .navlist button .ic{width:16px;flex-shrink:0;text-align:center;}
+  .navlist button .count{margin-left:auto;font-family:var(--font-mono);font-size:10px;background:rgba(255,255,255,0.06);color:var(--paper-dim);padding:1px 7px;border-radius:100px;}
+  .navlist button.active .count{background:rgba(255,255,255,0.16);color:#fff;}
+
+  .sidebar-footer{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);}
+  .status-pill{font-family:var(--font-mono);font-size:10px;color:var(--green);display:flex;align-items:center;gap:7px;padding:7px 10px;}
+  .status-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);}
+  .copyline{font-family:var(--font-mono);font-size:9px;color:var(--paper-faint);padding:2px 10px 4px;}
+
+  /* ---- Bottom tab bar (mobile) ---- */
+  .tabbar{display:none;}
+
+  /* ---- Main ---- */
+  .main{overflow-y:auto;height:100vh;position:relative;}
+  .topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;justify-content:space-between;padding:16px 26px;background:rgba(5,10,22,0.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+  .page-title{font-family:var(--font-display);font-weight:700;font-size:15.5px;}
+  .page-title span{color:var(--paper-dim);font-weight:500;font-size:11.8px;display:block;margin-top:2px;}
+
+  .page{display:none;padding:22px 26px 100px;max-width:920px;}
+  .page.active{display:block;}
+
+  .section-title{font-family:var(--font-display);font-size:13.5px;font-weight:700;margin:0 0 3px;}
+  .section-sub{font-size:12px;color:var(--paper-dim);margin:0 0 14px;}
+
+  /* ---- Dropzone ---- */
+  .dropzone{border:1.5px dashed var(--line-strong);border-radius:var(--radius);padding:30px 18px;text-align:center;cursor:pointer;background:rgba(255,255,255,0.015);transition:.16s;}
+  .dropzone:hover,.dropzone.drag{border-color:var(--green);background:var(--green-soft);}
+  .dropzone .dz-icon{width:44px;height:44px;margin:0 auto 10px;border-radius:12px;background:var(--navy-700);border:1px solid var(--line-strong);display:flex;align-items:center;justify-content:center;}
+  .dz-title{font-weight:700;font-size:14px;margin-bottom:4px;}
+  .dz-sub{font-size:11.5px;color:var(--paper-dim);}
+  .dropzone input{display:none;}
+
+  .filelist{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:7px;max-height:280px;overflow-y:auto;}
+  .fitem{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.025);border:1px solid var(--line);border-radius:10px;padding:8px 9px;}
+  .fitem .thumb{width:32px;height:32px;border-radius:7px;object-fit:cover;flex-shrink:0;background:var(--navy-800);border:1px solid var(--line);}
+  .ficon{width:32px;height:32px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:8px;font-weight:700;}
+  .ficon.doc{background:rgba(47,95,168,0.18);color:#9fc1ff;border:1px solid rgba(47,95,168,0.4);}
+  .ficon.txt{background:rgba(255,255,255,0.05);color:var(--paper-dim);border:1px solid var(--line);}
+  .fmeta{flex:1;min-width:0;}
+  .fname{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .fsize{font-size:10px;color:var(--paper-dim);font-family:var(--font-mono);}
+  .fctrls{display:flex;gap:3px;flex-shrink:0;}
+  .ibtn{width:23px;height:23px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--paper-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10.5px;transition:.13s;}
+  .ibtn:hover{color:#fff;border-color:var(--line-strong);}
+  .ibtn.danger:hover{color:var(--red);border-color:rgba(217,67,60,0.4);background:var(--red-soft);}
+
+  .quickbar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .quickbar .btn-ghost{margin:0;flex:1;min-width:130px;}
+
+  .cardgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .card{background:linear-gradient(180deg,rgba(15,29,56,0.5),rgba(10,20,40,0.5));border:1px solid var(--line);border-radius:var(--radius);padding:18px;min-width:0;}
+
+  .field{margin-bottom:14px;}
+  .field label{font-size:12.3px;font-weight:600;display:block;margin-bottom:6px;}
+  .field .desc{font-size:10.8px;color:var(--paper-dim);font-weight:400;display:block;margin-top:4px;}
+  .textinput{
+    width:100%;background:var(--navy-950);color:var(--paper);border:1px solid var(--line-strong);
+    border-radius:8px;padding:10px 11px;font-family:var(--font-body);font-size:12.8px;outline:none;
+  }
+  .textinput:focus{border-color:var(--navy-accent);}
+  .input-suffix{display:flex;align-items:stretch;}
+  .input-suffix .textinput{border-radius:8px 0 0 8px;border-right:none;}
+  .input-suffix span{background:var(--navy-800);border:1px solid var(--line-strong);border-radius:0 8px 8px 0;padding:0 10px;display:flex;align-items:center;font-family:var(--font-mono);font-size:11px;color:var(--paper-dim);}
+
+  .optrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .optrow:last-child{border-bottom:none;}
+  .optrow label{font-size:12.3px;font-weight:600;display:block;}
+  .optrow .desc{font-size:10.8px;color:var(--paper-dim);font-weight:400;display:block;margin-top:2px;}
+  .optrow .ctrl{flex-shrink:0;}
+  select{background:var(--navy-950);color:var(--paper);border:1px solid var(--line-strong);border-radius:8px;padding:8px 9px;font-family:var(--font-body);font-size:12px;outline:none;cursor:pointer;max-width:100%;}
+  optgroup{font-family:var(--font-mono);font-size:10px;}
+
+  .seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden;}
+  .seg button{background:transparent;border:none;color:var(--paper-dim);font-size:11.5px;font-weight:600;padding:7px 12px;cursor:pointer;font-family:var(--font-body);transition:.14s;white-space:nowrap;}
+  .seg button.active{background:var(--navy-600);color:#fff;}
+  .seg button:not(:last-child){border-right:1px solid var(--line-strong);}
+
+  .toggle{position:relative;width:44px;height:25px;flex-shrink:0;}
+  .toggle input{opacity:0;width:0;height:0;position:absolute;}
+  .toggle .track{position:absolute;inset:0;background:var(--navy-800);border:1.5px solid var(--line-strong);border-radius:100px;cursor:pointer;transition:.16s;box-shadow:inset 0 1px 3px rgba(0,0,0,0.3);}
+  .toggle .knob{position:absolute;top:2.5px;left:3px;width:18px;height:18px;border-radius:50%;background:#cfd6e8;transition:.16s;box-shadow:0 1px 3px rgba(0,0,0,0.4);}
+  .toggle input:checked + .track{background:var(--green);border-color:var(--green);}
+  .toggle input:checked + .track .knob{transform:translateX(19px);background:#fff;}
+  .toggle-state{font-family:var(--font-mono);font-size:10px;color:var(--paper-dim);margin-left:8px;min-width:34px;display:inline-block;}
+
+  .paper-preview{margin-top:14px;display:flex;align-items:center;justify-content:center;background:var(--navy-950);border:1px solid var(--line);border-radius:10px;padding:20px;min-height:130px;}
+  .paper-shape{background:#fff;border-radius:2px;box-shadow:0 8px 26px rgba(0,0,0,0.45);position:relative;}
+  .paper-shape::after{content:attr(data-label);position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:9.5px;color:var(--paper-dim);white-space:nowrap;}
+
+  .btn-primary{width:100%;padding:13px 16px;border-radius:12px;border:none;cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:13.5px;background:linear-gradient(100deg,var(--green) 0%, #1b7a4c 100%);color:#eafff3;box-shadow:0 10px 24px rgba(40,168,106,0.2);display:flex;align-items:center;justify-content:center;gap:9px;transition:.14s;}
+  .btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 14px 28px rgba(40,168,106,0.3);}
+  .btn-primary:disabled{opacity:.32;cursor:not-allowed;box-shadow:none;}
+  .btn-ghost{padding:10px 14px;border-radius:12px;border:1px solid var(--line-strong);background:transparent;color:var(--paper-dim);font-family:var(--font-body);font-weight:600;font-size:12px;cursor:pointer;}
+  .btn-ghost:hover{color:var(--red);border-color:rgba(217,67,60,0.4);}
+
+  .progress-wrap{margin-top:14px;display:none;}
+  .progress-wrap.show{display:block;}
+  .progress-track{height:5px;border-radius:100px;background:rgba(255,255,255,0.06);overflow:hidden;}
+  .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--green),#7fe3b4);transition:width .25s ease;}
+  .progress-label{font-family:var(--font-mono);font-size:10px;color:var(--paper-dim);margin-top:7px;}
+
+  .steps{display:flex;flex-direction:column;}
+  .step{display:flex;gap:13px;padding:14px 0;border-bottom:1px solid var(--line);}
+  .step:last-child{border-bottom:none;}
+  .step .idx{width:26px;height:26px;border-radius:8px;flex-shrink:0;background:var(--navy-950);border:1px solid var(--line-strong);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10.5px;color:var(--paper-dim);font-weight:700;}
+  .step h3{font-size:13px;margin:0 0 3px;font-weight:700;}
+  .step p{font-size:12px;color:var(--paper-dim);margin:0;line-height:1.5;}
+
+  .support-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
+  .support-item{border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:11.5px;color:var(--paper-dim);display:flex;align-items:center;gap:8px;}
+  .support-item i{width:6px;height:6px;border-radius:2px;flex-shrink:0;}
+  .si-r i{background:var(--red);} .si-g i{background:var(--green);} .si-n i{background:var(--navy-accent);} .si-w i{background:#fff;}
+
+  .console{background:var(--ink);border:1px solid var(--line);border-radius:12px;padding:13px;font-family:var(--font-mono);font-size:10.5px;color:#8fd6ac;max-height:220px;overflow-y:auto;}
+  .console .cline{color:var(--paper-dim);margin-bottom:5px;word-break:break-word;}
+  .console .cline span{color:var(--green);}
+  .console .cline.err span{color:var(--red);}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy-900);border:1px solid var(--line-strong);color:#fff;padding:12px 18px;border-radius:11px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:9px;opacity:0;pointer-events:none;transition:all .25s ease;box-shadow:0 14px 40px rgba(0,0,0,0.5);z-index:999;max-width:90vw;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast i{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
+  .toast.error i{background:var(--red);}
+
+  .about-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .badge{font-size:11px;font-weight:600;padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,0.02);display:flex;align-items:center;gap:7px;}
+  .badge i{width:6px;height:6px;border-radius:2px;display:inline-block;}
+  .b-red i{background:var(--red);} .b-green i{background:var(--green);} .b-white i{background:#fff;}
+
+  /* ============ RESPONSIVE ============ */
+  @media(max-width:820px){
+    .app{grid-template-columns:1fr;height:auto;display:block;}
+    .sidebar{display:none;}
+    /* Di HP, biarkan halaman (body) sendiri yang scroll — 100vh di browser HP
+       suka salah hitung karena address bar yang muncul/hilang, jadi kotak
+       dalam yang tingginya dikunci bisa kepotong. Scroll asli jauh lebih stabil. */
+    .main{height:auto;overflow:visible;}
+    .page{padding:16px 16px 28px;}
+    .topbar{padding:14px 16px;}
+    body{padding-bottom:82px;} /* ruang aman di bawah biar konten terakhir tidak ketutup tab bar */
+    .tabbar{
+      display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;
+      background:linear-gradient(180deg,var(--navy-900),var(--navy-950));
+      border-top:1px solid var(--line-strong);padding:8px 4px calc(8px + env(safe-area-inset-bottom));
+      justify-content:space-around;box-shadow:0 -8px 24px rgba(0,0,0,0.4);
+    }
+    .tabbar button{
+      background:transparent;border:none;color:var(--paper-dim);cursor:pointer;
+      display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 1px;
+      font-family:var(--font-body);font-size:8.7px;font-weight:600;border-radius:9px;flex:1;
+      max-width:78px;
+    }
+    .tabbar button .ic{font-size:16px;line-height:1;}
+    .tabbar button.active{color:#fff;background:rgba(255,255,255,0.05);}
+    .tabbar button.active .ic{filter:drop-shadow(0 0 6px rgba(40,168,106,0.6));}
+    .cardgrid{grid-template-columns:1fr;}
+  }
+  @media(max-width:480px){
+    .optrow{flex-direction:column;align-items:flex-start;gap:9px;}
+    .optrow.row-fixed{flex-direction:row;align-items:center;}
+    .optrow .ctrl{width:100%;}
+    .optrow.row-fixed .ctrl{width:auto;}
+    .optrow .ctrl select,.optrow .ctrl .seg{width:100%;}
+    .seg{display:flex;width:100%;}
+    .seg button{flex:1;padding:9px 6px;font-size:11.5px;}
+  }  /* ============ INTRO / "LOGIN" LOKAL ============ */
+  /* Bukan form login sungguhan (aplikasi ini tanpa server/akun) — ini animasi
+     pembuka yang jujur: menegaskan bahwa ruang kerja disiapkan secara lokal
+     dan tidak ada data yang dikirim keluar, lalu "terbuka" saat siap. */
+  #introOverlay{
+    position:fixed;inset:0;z-index:9999;
+    background:
+      radial-gradient(ellipse 900px 560px at 50% 28%, rgba(28,58,104,0.4), transparent 62%),
+      var(--navy-950);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    cursor:pointer;transition:opacity .5s ease;
+  }
+  #introOverlay.hide{opacity:0;pointer-events:none;}
+  #introOverlay.remove{display:none;}
+
+  .intro-ringwrap{position:relative;width:132px;height:132px;display:flex;align-items:center;justify-content:center;}
+  .intro-ring{position:absolute;inset:0;transform:rotate(-90deg);}
+  .intro-ring-track{fill:none;stroke:rgba(238,241,248,0.08);stroke-width:1.3;}
+  .intro-ring-draw{
+    fill:none;stroke:#dfe8ff;stroke-width:1.6;stroke-linecap:round;
+    stroke-dasharray:540.4;stroke-dashoffset:540.4;
+    filter:drop-shadow(0 0 6px rgba(223,232,255,.3));
+    transition:stroke .35s ease, filter .35s ease;
+  }
+  #introOverlay.drawn .intro-ring-draw{stroke-dashoffset:0;transition:stroke-dashoffset 1.5s cubic-bezier(.6,0,.3,1), stroke .35s ease, filter .35s ease;}
+  #introOverlay.unlocked .intro-ring-draw{stroke:var(--green);filter:drop-shadow(0 0 10px rgba(40,168,106,.65));}
+
+  .intro-mark{font-family:var(--font-display);font-weight:800;font-size:21px;letter-spacing:.03em;color:#fff;opacity:0;transform:scale(.86);transition:opacity .45s ease, transform .45s ease;}
+  .intro-mark.show{opacity:1;transform:scale(1);}
+
+  .intro-brand{font-family:var(--font-display);font-weight:700;font-size:14.5px;letter-spacing:.16em;color:var(--paper-dim);opacity:0;transform:translateY(6px);transition:opacity .4s ease, transform .4s ease;}
+  .intro-brand.show{opacity:1;transform:translateY(0);}
+  .intro-brand span{color:#fff;}
+
+  .intro-status{font-family:var(--font-mono);font-size:11px;color:var(--paper-dim);min-height:14px;opacity:0;transition:opacity .25s ease;}
+  .intro-status.show{opacity:1;}
+
+  .intro-skip{position:absolute;bottom:30px;font-family:var(--font-mono);font-size:10px;color:var(--paper-faint);opacity:0;transition:opacity .4s ease;}
+  .intro-skip.show{opacity:1;}
+
+  @media (prefers-reduced-motion: reduce){
+    #introOverlay{ display:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Animasi pembuka lokal — bukan login sungguhan (tidak ada server/akun),
+     tapi konfirmasi visual bahwa ruang kerja disiapkan secara lokal &
+     tidak ada data yang dikirim keluar. Ketuk kapan saja untuk lewati. -->
+<div id="introOverlay">
+  <div class="intro-ringwrap">
+    <svg class="intro-ring" viewBox="0 0 200 200" width="132" height="132">
+      <circle class="intro-ring-track" cx="100" cy="100" r="86"></circle>
+      <circle class="intro-ring-draw" cx="100" cy="100" r="86"></circle>
+    </svg>
+    <div class="intro-mark">S22</div>
+  </div>
+  <div class="intro-brand">SIAHAAN<span>22</span></div>
+  <div class="intro-status" id="introStatus"></div>
+  <div class="intro-skip">Ketuk untuk lewati</div>
+</div>
+<script>
+(function(){
+  var overlay = document.getElementById('introOverlay');
+  if(!overlay) return;
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    overlay.classList.add('remove');
+    return;
+  }
+  var markEl = overlay.querySelector('.intro-mark');
+  var brandEl = overlay.querySelector('.intro-brand');
+  var statusEl = document.getElementById('introStatus');
+  var skipEl = overlay.querySelector('.intro-skip');
+  var phrases = ['Menyiapkan ruang kerja lokal…', 'Tidak ada data yang dikirim keluar…', 'Siap dipakai.'];
+  var finished = false;
+  var timers = [];
+
+  function setPhrase(i){
+    statusEl.classList.remove('show');
+    setTimeout(function(){ statusEl.textContent = phrases[i]; statusEl.classList.add('show'); }, 160);
+  }
+
+  function finish(){
+    if(finished) return;
+    finished = true;
+    timers.forEach(clearTimeout);
+    overlay.classList.add('unlocked');
+    setPhrase(2);
+    setTimeout(function(){
+      overlay.classList.add('hide');
+      setTimeout(function(){ overlay.classList.add('remove'); }, 550);
+    }, 500);
+  }
+
+  requestAnimationFrame(function(){ overlay.classList.add('drawn'); });
+  timers.push(setTimeout(function(){ markEl.classList.add('show'); }, 750));
+  timers.push(setTimeout(function(){
+    brandEl.classList.add('show');
+    statusEl.textContent = phrases[0];
+    statusEl.classList.add('show');
+  }, 950));
+  timers.push(setTimeout(function(){ skipEl.classList.add('show'); }, 1150));
+  timers.push(setTimeout(function(){ setPhrase(1); }, 1550));
+  timers.push(setTimeout(finish, 2500));
+
+  overlay.addEventListener('click', finish);
+})();
+</script>
+
+<div class="app">
+  <!-- SIDEBAR (desktop) -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">S22</div>
+      <div class="brand-text">SIAHAAN22<small>PDF Studio</small></div>
+    </div>
+    <div class="navlabel">Menu</div>
+    <ul class="navlist">
+      <li><button class="active" data-page="upload"><span class="ic">📤</span> Unggah File <span class="count" id="navCount">0</span></button></li>
+      <li><button data-page="settings"><span class="ic">⚙️</span> Pengaturan PDF</button></li>
+      <li><button data-page="pdftext"><span class="ic">📝</span> PDF → Teks</button></li>
+      <li><button data-page="how"><span class="ic">📘</span> Cara Kerja</button></li>
+      <li><button data-page="about"><span class="ic">ℹ️</span> Tentang</button></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="status-pill">Berjalan lokal di browser</div>
+      <div class="copyline">© 2026 SIAHAAN22</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Unggah File<span>Tambahkan foto & dokumen yang mau dijadikan PDF</span></div>
+    </div>
+
+    <!-- PAGE 1: UPLOAD -->
+    <section class="page active" id="page-upload">
+      <div class="card">
+        <div class="section-title">Tambahkan file</div>
+        <div class="section-sub">Foto (JPG/PNG/WEBP), dokumen Word (.docx), atau teks (.txt). Bisa dicampur & urutan diatur.</div>
+
+        <div class="dropzone" id="dropzone">
+          <div class="dz-icon">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0-12 4 4m-4-4-4 4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" stroke="#dfe8ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="dz-title">Klik atau seret file ke sini</div>
+          <div class="dz-sub">Bisa pilih banyak file sekaligus</div>
+          <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.webp,.docx,.txt,image/*">
+        </div>
+
+        <ul class="filelist" id="filelist"></ul>
+
+        <div class="quickbar">
+          <button class="btn-ghost" id="clearBtn">Kosongkan semua</button>
+          <button class="btn-ghost" id="goSettingsBtn" style="color:var(--paper);">Lanjut ke Pengaturan →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: SETTINGS -->
+    <section class="page" id="page-settings">
+      <div class="cardgrid">
+        <div class="card">
+          <div class="section-title">Nama & mode</div>
+          <div class="section-sub">Nama file dan cara file digabung.</div>
+
+          <div class="field">
+            <label for="fileName">Nama file PDF</label>
+            <div class="input-suffix">
+              <input type="text" id="fileName" class="textinput" value="dokumen-SIAHAAN22" maxlength="80">
+              <span>.pdf</span>
+            </div>
+            <span class="desc">Dipakai saat mode "Gabung". Mode "Terpisah" memakai nama file asli.</span>
+          </div>
+
+          <div class="optrow">
+            <div><label>Mode keluaran</label><span class="desc">Gabung jadi satu PDF, atau terpisah</span></div>
+            <div class="ctrl seg" id="modeSeg">
+              <button class="active" data-mode="merge">Gabung</button>
+              <button data-mode="separate">Pisah</button>
+            </div>
+          </div>
+
+          <div class="optrow">
+            <div><label>Orientasi</label><span class="desc">Untuk halaman berukuran tetap</span></div>
+            <div class="ctrl seg" id="orientSeg">
+              <button class="active" data-orient="portrait">Potret</button>
+              <button data-orient="landscape">Lanskap</button>
+            </div>
+          </div>
+
+          <div class="optrow">
+            <div><label>Margin foto</label><span class="desc">Jarak tepi saat foto dicetak</span></div>
+            <div class="ctrl">
+              <select id="marginSel">
+                <option value="0">Tanpa margin</option>
+                <option value="10" selected>Standar (10mm)</option>
+                <option value="20">Lebar (20mm)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="optrow">
+            <div><label>Kualitas foto</label><span class="desc">Kualitas tinggi = ukuran file lebih besar</span></div>
+            <div class="ctrl">
+              <select id="qualitySel">
+                <option value="0.7">Hemat (kecil)</option>
+                <option value="0.85" selected>Standar</option>
+                <option value="0.97">Tinggi (besar)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Ukuran kertas</div>
+          <div class="section-sub">Pilihan lengkap standar ISO & Amerika.</div>
+
+          <select id="pageSize" style="width:100%;">
+            <optgroup label="Menyesuaikan">
+              <option value="fit">Menyesuaikan ukuran foto</option>
+              <option value="custom">Ukuran custom…</option>
+            </optgroup>
+            <optgroup label="Seri ISO A">
+              <option value="a2">A2 — 420 × 594 mm</option>
+              <option value="a3">A3 — 297 × 420 mm</option>
+              <option value="a4" selected>A4 — 210 × 297 mm</option>
+              <option value="a5">A5 — 148 × 210 mm</option>
+              <option value="a6">A6 — 105 × 148 mm</option>
+            </optgroup>
+            <optgroup label="Seri ISO A (besar)">
+              <option value="a0">A0 — 841 × 1189 mm</option>
+              <option value="a1">A1 — 594 × 841 mm</option>
+            </optgroup>
+            <optgroup label="Seri ISO B">
+              <option value="b3">B3 — 353 × 500 mm</option>
+              <option value="b4">B4 — 250 × 353 mm</option>
+              <option value="b5">B5 — 176 × 250 mm</option>
+              <option value="b6">B6 — 125 × 176 mm</option>
+            </optgroup>
+            <optgroup label="Standar Amerika">
+              <option value="letter">Letter — 215.9 × 279.4 mm</option>
+              <option value="legal">Legal — 215.9 × 355.6 mm</option>
+              <option value="tabloid">Tabloid — 279.4 × 431.8 mm</option>
+              <option value="executive">Executive — 184.2 × 266.7 mm</option>
+              <option value="statement">Statement — 139.7 × 215.9 mm</option>
+            </optgroup>
+            <optgroup label="Lainnya">
+              <option value="f4">F4 / Folio — 215 × 330 mm</option>
+            </optgroup>
+          </select>
+
+          <div class="field" id="customSizeField" style="display:none;margin-top:12px;">
+            <label>Ukuran custom (mm)</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="number" id="customW" class="textinput" placeholder="Lebar" min="10" max="2000" value="210">
+              <span style="color:var(--paper-dim);font-family:var(--font-mono);font-size:12px;">×</span>
+              <input type="number" id="customH" class="textinput" placeholder="Tinggi" min="10" max="2000" value="297">
+            </div>
+          </div>
+
+          <div class="paper-preview">
+            <div class="paper-shape" id="paperShape" data-label="A4"></div>
+          </div>
+
+          <div class="optrow row-fixed" style="margin-top:6px;">
+            <div><label>Nomor halaman</label><span class="desc">Otomatis rapi di bawah foto/dokumen</span></div>
+            <div class="ctrl" style="display:flex;align-items:center;">
+              <label class="toggle">
+                <input type="checkbox" id="pageNumToggle">
+                <span class="track"><span class="knob"></span></span>
+              </label>
+              <span class="toggle-state" id="pageNumState">Nonaktif</span>
+            </div>
+          </div>
+
+          <div class="optrow row-fixed">
+            <div><label>Watermark teks</label><span class="desc">Cap teks tipis di setiap halaman</span></div>
+            <div class="ctrl" style="display:flex;align-items:center;">
+              <label class="toggle">
+                <input type="checkbox" id="watermarkToggle">
+                <span class="track"><span class="knob"></span></span>
+              </label>
+              <span class="toggle-state" id="watermarkState">Nonaktif</span>
+            </div>
+          </div>
+          <div class="field" id="watermarkField" style="display:none;">
+            <input type="text" id="watermarkText" class="textinput" value="SIAHAAN22" maxlength="40">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="convertBtn" disabled style="margin-top:14px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" stroke="#eafff3" stroke-width="1.7"/><path d="M9 13h6M9 17h6M9 9h2" stroke="#eafff3" stroke-width="1.7" stroke-linecap="round"/></svg>
+        Buat PDF
+      </button>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-label" id="progressLabel">Memproses...</div>
+      </div>
+    </section>
+
+    <!-- PAGE 3: PDF -> TEXT -->
+    <section class="page" id="page-pdftext">
+      <div class="card">
+        <div class="section-title">Ekstrak teks dari PDF</div>
+        <div class="section-sub">Unggah PDF, teksnya otomatis diambil dan bisa langsung kamu ubah di kotak bawah.</div>
+
+        <div class="dropzone" id="pdfDropzone">
+          <div class="dz-icon">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" stroke="#dfe8ff" stroke-width="1.7"/><path d="M9 13h6M9 17h4" stroke="#dfe8ff" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </div>
+          <div class="dz-title">Klik atau seret file PDF ke sini</div>
+          <div class="dz-sub">Satu file PDF per proses</div>
+          <input type="file" id="pdfTextInput" accept=".pdf,application/pdf">
+        </div>
+
+        <div id="pdfTextStatus" style="display:none;margin-top:14px;font-family:var(--font-mono);font-size:11px;color:var(--paper-dim);"></div>
+
+        <div id="pdfTextResult" style="display:none;margin-top:16px;">
+          <div class="field">
+            <label id="pdfTextLabel">Isi teks (bisa diedit bebas)</label>
+            <textarea id="pdfTextArea" class="textinput" style="width:100%;min-height:240px;resize:vertical;font-family:var(--font-mono);font-size:11.8px;line-height:1.65;"></textarea>
+          </div>
+          <div class="quickbar">
+            <button class="btn-ghost" id="copyTextBtn" style="color:var(--paper);">📋 Salin teks</button>
+            <button class="btn-ghost" id="downloadTxtBtn" style="color:var(--paper);">⬇️ Unduh .txt</button>
+            <button class="btn-ghost" id="rebuildPdfBtn" style="color:var(--paper);">📄 Jadikan PDF baru</button>
+          </div>
+          <div class="section-sub" style="margin-top:10px;margin-bottom:0;">"Jadikan PDF baru" memakai ukuran kertas & fitur dari halaman Pengaturan.</div>
+
+          <div id="scanHint" style="display:none;margin-top:14px;padding:11px 13px;border-radius:10px;background:var(--red-soft);border:1px solid rgba(217,67,60,0.35);font-size:12px;color:var(--paper);">
+            ⚠️ Sepertinya PDF ini isinya foto/hasil scan, bukan teks asli — coba tombol <b>OCR</b> di bawah supaya tulisannya bisa terbaca.
+          </div>
+
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);">
+            <div class="section-sub" style="margin-bottom:10px;">Kalau isi PDF-nya foto/hasil scan:</div>
+            <div class="quickbar">
+              <button class="btn-ghost" id="ocrBtn" style="color:var(--paper);">🔍 Baca teks dari foto (OCR)</button>
+              <button class="btn-ghost" id="downloadImagesBtn" style="color:var(--paper);">🖼️ Unduh sbg foto (.zip)</button>
+            </div>
+            <div class="section-sub" style="margin-top:8px;margin-bottom:0;">OCR mungkin makan waktu beberapa detik–menit tergantung jumlah halaman.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 4: HOW -->
+    <section class="page" id="page-how">
+      <div class="cardgrid">
+        <div class="card">
+          <div class="section-title">Cara kerja</div>
+          <div class="section-sub">Beberapa langkah sederhana, semuanya di browser kamu.</div>
+          <div class="steps">
+            <div class="step"><div class="idx">01</div><div><h3>Pilih file</h3><p>Foto langsung dijadikan halaman PDF sesuai ukuran aslinya. Dokumen Word & teks dibaca lalu ditata ulang jadi halaman PDF.</p></div></div>
+            <div class="step"><div class="idx">02</div><div><h3>Atur urutan & nama</h3><p>Gunakan tombol panah untuk urutan halaman, putar foto bila perlu, dan beri nama file PDF-nya di halaman Pengaturan.</p></div></div>
+            <div class="step"><div class="idx">03</div><div><h3>PDF → Teks</h3><p>Punya PDF dan mau isinya diubah? Unggah di halaman PDF → Teks, edit langsung, lalu jadikan PDF baru atau unduh sebagai .txt.</p></div></div>
+            <div class="step"><div class="idx">04</div><div><h3>Unduh</h3><p>Semua hasil langsung dibuat di browser dan diunduh ke folder Downloads — tidak ada file yang terkirim keluar dari komputer kamu.</p></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title">Log proses</div>
+          <div class="section-sub">Riwayat aktivitas konversi terbaru.</div>
+          <div class="console" id="consoleBox"><div class="cline"><span>&gt;</span> Menunggu file pertama…</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 5: ABOUT -->
+    <section class="page" id="page-about">
+      <div class="card">
+        <div class="section-title">Tentang SIAHAAN22 PDF Studio</div>
+        <div class="section-sub">Alat konversi file ke PDF yang berjalan 100% lokal di browser — tanpa server, tanpa unggah data.</div>
+        <div class="support-grid">
+          <div class="support-item si-n"><i></i>100% di browser</div>
+          <div class="support-item si-g"><i></i>Tanpa batas file*</div>
+          <div class="support-item si-r"><i></i>Tanpa watermark paksa</div>
+          <div class="support-item si-w"><i></i>Gratis dipakai</div>
+        </div>
+        <div class="about-badges">
+          <div class="badge b-white"><i></i>JPG / PNG / WEBP</div>
+          <div class="badge b-green"><i></i>DOCX / TXT</div>
+          <div class="badge b-red"><i></i>Gabung jadi 1 PDF</div>
+          <div class="badge b-white"><i></i>PDF → Teks (bisa diedit)</div>
+        </div>
+        <p style="font-size:11px;color:var(--paper-faint);margin-top:18px;">© 2026 SIAHAAN22 — Semua proses berjalan lokal di perangkat kamu.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Tab bar (mobile) -->
+<nav class="tabbar">
+  <button class="active" data-page="upload"><span class="ic">📤</span>Unggah</button>
+  <button data-page="settings"><span class="ic">⚙️</span>Atur</button>
+  <button data-page="pdftext"><span class="ic">📝</span>PDF→Teks</button>
+  <button data-page="how"><span class="ic">📘</span>Cara Kerja</button>
+  <button data-page="about"><span class="ic">ℹ️</span>Tentang</button>
+</nav>
+
+<div class="toast" id="toast"><i></i><span id="toastText"></span></div>
+
+<script>
+// @ts-nocheck — file JavaScript biasa, bukan TypeScript, jadi pengecekan tipe editor dimatikan di sini.
+(function(){
+  const { jsPDF } = window.jspdf;
+
+  /* ---------- Navigation ---------- */
+  const allNavButtons = document.querySelectorAll('.navlist button, .tabbar button');
+  const pages = document.querySelectorAll('.page');
+  const pageTitle = document.getElementById('pageTitle');
+
+  const titles = {
+    upload: ['Unggah File', 'Tambahkan foto & dokumen yang mau dijadikan PDF'],
+    settings: ['Pengaturan PDF', 'Nama file, mode, ukuran kertas, dan fitur tambahan'],
+    pdftext: ['PDF ke Teks', 'Ambil teks dari PDF dan edit langsung di sini'],
+    how: ['Cara Kerja', 'Alur proses & log aktivitas'],
+    about: ['Tentang', 'Info singkat tentang aplikasi ini']
+  };
+
+  function goPage(name){
+    allNavButtons.forEach(b=> b.classList.toggle('active', b.dataset.page === name));
+    pages.forEach(p=> p.classList.toggle('active', p.id === 'page-'+name));
+    pageTitle.innerHTML = titles[name][0] + '<span>' + titles[name][1] + '</span>';
+    document.querySelector('.main').scrollTop = 0;
+    window.scrollTo(0, 0);
+  }
+  allNavButtons.forEach(b=> b.addEventListener('click', ()=> goPage(b.dataset.page)));
+  document.getElementById('goSettingsBtn').addEventListener('click', ()=> goPage('settings'));
+
+  /* ---------- State ---------- */
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const filelistEl = document.getElementById('filelist');
+  const navCount = document.getElementById('navCount');
+  const convertBtn = document.getElementById('convertBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const modeSeg = document.getElementById('modeSeg');
+  const orientSeg = document.getElementById('orientSeg');
+  const pageSizeSel = document.getElementById('pageSize');
+  const marginSel = document.getElementById('marginSel');
+  const qualitySel = document.getElementById('qualitySel');
+  const fileNameInput = document.getElementById('fileName');
+  const pageNumToggle = document.getElementById('pageNumToggle');
+  const watermarkToggle = document.getElementById('watermarkToggle');
+  const watermarkField = document.getElementById('watermarkField');
+  const watermarkText = document.getElementById('watermarkText');
+  const progressWrap = document.getElementById('progressWrap');
+  const progressBar = document.getElementById('progressBar');
+  const progressLabel = document.getElementById('progressLabel');
+  const consoleBox = document.getElementById('consoleBox');
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toastText');
+  const paperShape = document.getElementById('paperShape');
+
+  let files = [];
+  let mode = 'merge';
+  let orient = 'portrait';
+  let uid = 0;
+
+  const PAPER_SIZES = {
+    a0:[841,1189], a1:[594,841], a2:[420,594], a3:[297,420], a4:[210,297], a5:[148,210], a6:[105,148],
+    b3:[353,500], b4:[250,353], b5:[176,250], b6:[125,176],
+    letter:[215.9,279.4], legal:[215.9,355.6], tabloid:[279.4,431.8], executive:[184.2,266.7], statement:[139.7,215.9],
+    f4:[215,330]
+  };
+
+  const pageNumState = document.getElementById('pageNumState');
+  const watermarkState = document.getElementById('watermarkState');
+  watermarkToggle.addEventListener('change', ()=>{
+    watermarkField.style.display = watermarkToggle.checked ? 'block' : 'none';
+    watermarkState.textContent = watermarkToggle.checked ? 'Aktif' : 'Nonaktif';
+  });
+  pageNumToggle.addEventListener('change', ()=>{
+    pageNumState.textContent = pageNumToggle.checked ? 'Aktif' : 'Nonaktif';
+  });
+
+  function log(msg, isErr){
+    const line = document.createElement('div');
+    line.className = 'cline' + (isErr ? ' err' : '');
+    line.innerHTML = '<span>&gt;</span> ' + msg;
+    consoleBox.appendChild(line);
+    consoleBox.scrollTop = consoleBox.scrollHeight;
+  }
+  function showToast(msg, isError){
+    toastText.textContent = msg;
+    toast.classList.toggle('error', !!isError);
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 3000);
+  }
+  function fmtSize(bytes){
+    if(bytes < 1024) return bytes + ' B';
+    if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/(1024*1024)).toFixed(1) + ' MB';
+  }
+  function typeOf(file){
+    const ext = file.name.split('.').pop().toLowerCase();
+    if(['jpg','jpeg','png','webp','gif','bmp'].includes(ext)) return 'img';
+    if(ext === 'docx') return 'doc';
+    if(ext === 'txt') return 'txt';
+    return 'other';
+  }
+  function sanitizeName(name){
+    return (name || 'dokumen').trim().replace(/[\\/:*?"<>|]+/g,'-').slice(0,80) || 'dokumen';
+  }
+
+  function addFiles(fileArr){
+    let added = 0;
+    [...fileArr].forEach(f=>{
+      const t = typeOf(f);
+      if(t === 'other'){ log('Dilewati (format tidak didukung): ' + f.name, true); return; }
+      const item = { id:'f'+(uid++), file:f, type:t, rotation:0 };
+      if(t === 'img') item.previewUrl = URL.createObjectURL(f);
+      files.push(item);
+      added++;
+    });
+    if(added) log('Ditambahkan ' + added + ' file. Total: ' + files.length + '.');
+    renderList();
+  }
+
+  function renderList(){
+    filelistEl.innerHTML = '';
+    files.forEach((item, idx)=>{
+      const li = document.createElement('li');
+      li.className = 'fitem';
+      let thumbHtml;
+      if(item.type === 'img'){
+        thumbHtml = '<img class="thumb" style="transform:rotate('+item.rotation+'deg);" src="'+item.previewUrl+'">';
+      } else {
+        const cls = item.type === 'doc' ? 'doc' : 'txt';
+        const label = item.type === 'doc' ? 'DOCX' : 'TXT';
+        thumbHtml = '<div class="ficon '+cls+'">'+label+'</div>';
+      }
+      const rotateBtn = item.type === 'img' ? '<button class="ibtn" data-act="rotate" data-idx="'+idx+'" title="Putar">⟳</button>' : '';
+      li.innerHTML = thumbHtml +
+        '<div class="fmeta"><div class="fname">'+item.file.name+'</div><div class="fsize">'+fmtSize(item.file.size)+'</div></div>' +
+        '<div class="fctrls">' +
+          rotateBtn +
+          '<button class="ibtn" data-act="up" data-idx="'+idx+'" title="Naik">▲</button>' +
+          '<button class="ibtn" data-act="down" data-idx="'+idx+'" title="Turun">▼</button>' +
+          '<button class="ibtn danger" data-act="del" data-idx="'+idx+'" title="Hapus">✕</button>' +
+        '</div>';
+      filelistEl.appendChild(li);
+    });
+    convertBtn.disabled = files.length === 0;
+    navCount.textContent = files.length;
+  }
+
+  filelistEl.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.ibtn'); if(!btn) return;
+    const idx = parseInt(btn.dataset.idx, 10);
+    const act = btn.dataset.act;
+    if(act === 'del'){
+      const removed = files.splice(idx,1)[0];
+      if(removed && removed.previewUrl) URL.revokeObjectURL(removed.previewUrl);
+      log('Menghapus: ' + removed.file.name);
+    } else if(act === 'up' && idx > 0){
+      [files[idx-1], files[idx]] = [files[idx], files[idx-1]];
+    } else if(act === 'down' && idx < files.length-1){
+      [files[idx+1], files[idx]] = [files[idx], files[idx+1]];
+    } else if(act === 'rotate'){
+      files[idx].rotation = (files[idx].rotation + 90) % 360;
+    }
+    renderList();
+  });
+
+  clearBtn.addEventListener('click', ()=>{
+    files.forEach(f=> f.previewUrl && URL.revokeObjectURL(f.previewUrl));
+    files = [];
+    renderList();
+    log('Semua file dikosongkan.');
+  });
+
+  dropzone.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', (e)=>{ addFiles(e.target.files); fileInput.value=''; });
+  ['dragenter','dragover'].forEach(ev=> dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev=> dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.remove('drag'); }));
+  dropzone.addEventListener('drop', e=>{ if(e.dataTransfer.files && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+  modeSeg.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    [...modeSeg.children].forEach(c=>c.classList.remove('active'));
+    b.classList.add('active'); mode = b.dataset.mode;
+  });
+  orientSeg.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    [...orientSeg.children].forEach(c=>c.classList.remove('active'));
+    b.classList.add('active'); orient = b.dataset.orient;
+    updatePaperPreview();
+  });
+  const customSizeField = document.getElementById('customSizeField');
+  const customW = document.getElementById('customW');
+  const customH = document.getElementById('customH');
+
+  pageSizeSel.addEventListener('change', ()=>{
+    customSizeField.style.display = pageSizeSel.value === 'custom' ? 'block' : 'none';
+    updatePaperPreview();
+  });
+  customW.addEventListener('input', updatePaperPreview);
+  customH.addEventListener('input', updatePaperPreview);
+
+  function updatePaperPreview(){
+    const val = pageSizeSel.value;
+    if(val === 'fit'){
+      paperShape.style.width = '64px'; paperShape.style.height = '88px';
+      paperShape.setAttribute('data-label', 'Ukuran foto asli');
+      return;
+    }
+    let w, h, label;
+    if(val === 'custom'){
+      w = Math.max(10, parseFloat(customW.value) || 210);
+      h = Math.max(10, parseFloat(customH.value) || 297);
+      label = 'Custom ' + w + '×' + h + 'mm';
+    } else {
+      [w,h] = PAPER_SIZES[val];
+      label = pageSizeSel.options[pageSizeSel.selectedIndex].text.split('—')[0].trim();
+    }
+    if(orient === 'landscape') [w,h] = [h,w];
+    const maxDim = 92;
+    const scale = maxDim / Math.max(w,h);
+    paperShape.style.width = Math.round(w*scale) + 'px';
+    paperShape.style.height = Math.round(h*scale) + 'px';
+    paperShape.setAttribute('data-label', label);
+  }
+  updatePaperPreview();
+
+  function pageDims(){
+    if(pageSizeSel.value === 'fit') return null;
+    let w, h;
+    if(pageSizeSel.value === 'custom'){
+      w = Math.max(10, parseFloat(customW.value) || 210);
+      h = Math.max(10, parseFloat(customH.value) || 297);
+    } else {
+      [w,h] = PAPER_SIZES[pageSizeSel.value];
+    }
+    if(orient === 'landscape') [w,h] = [h,w];
+    return [w,h];
+  }
+
+  function loadImage(file){
+    return new Promise((resolve, reject)=>{
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = ()=> resolve({img, url, w:img.width, h:img.height});
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+  function readAsText(file){
+    return new Promise((resolve, reject)=>{
+      const r = new FileReader();
+      r.onload = ()=> resolve(r.result); r.onerror = reject; r.readAsText(file);
+    });
+  }
+  function readAsArrayBuffer(file){
+    return new Promise((resolve, reject)=>{
+      const r = new FileReader();
+      r.onload = ()=> resolve(r.result); r.onerror = reject; r.readAsArrayBuffer(file);
+    });
+  }
+  async function docxToText(file){
+    const buf = await readAsArrayBuffer(file);
+    const result = await mammoth.extractRawText({ arrayBuffer: buf });
+    return result.value;
+  }
+
+  async function imageMmDims(item){
+    const { url, w:rawW, h:rawH } = await loadImage(item.file);
+    URL.revokeObjectURL(url);
+    const rotated = item.rotation === 90 || item.rotation === 270;
+    const w = rotated ? rawH : rawW;
+    const h = rotated ? rawW : rawH;
+    const mmPerPx = 25.4/96;
+    return [w*mmPerPx, h*mmPerPx];
+  }
+
+  // Ukuran halaman yang benar untuk item pertama sebuah PDF (dipakai saat membuat dokumen)
+  async function firstPageFormat(item){
+    const fixedDims = pageDims();
+    if(fixedDims) return fixedDims;
+    if(item.type === 'img') return await imageMmDims(item);
+    return [210,297];
+  }
+
+  function decorate(doc, pageW, pageH, place){
+    if(watermarkToggle.checked && watermarkText.value.trim()){
+      doc.saveGraphicsState();
+      doc.setFontSize(46);
+      doc.setTextColor(150,150,150);
+      if(doc.setGState) doc.setGState(new doc.GState({opacity:0.14}));
+      doc.text(watermarkText.value.trim(), pageW/2, pageH/2, { align:'center', angle:35 });
+      doc.restoreGraphicsState();
+    }
+
+    if(pageNumToggle.checked){
+      const label = String(doc.internal.getNumberOfPages());
+      doc.saveGraphicsState();
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(9);
+      const textW = doc.getTextWidth(label);
+      const padX = 3, padY = 1.6;
+      const boxW = textW + padX*2;
+      const boxH = 5.6;
+
+      let boxX, boxY;
+      if(place && place.imageBottom !== undefined && !place.fullBleed && (pageH - place.imageBottom) > boxH + 4){
+        // Ada ruang kosong di bawah foto -> taruh pas di tengah, di bawah foto
+        boxX = place.imageCenterX - boxW/2;
+        boxY = place.imageBottom + 3;
+      } else if(place && place.fullBleed){
+        // Foto memenuhi halaman penuh -> taruh label kecil di pojok, di atas foto
+        boxX = pageW - boxW - 6;
+        boxY = pageH - boxH - 6;
+      } else {
+        // Halaman dokumen/teks -> footer standar, tengah bawah
+        boxX = pageW/2 - boxW/2;
+        boxY = pageH - boxH - 7;
+      }
+
+      if(place && place.fullBleed){
+        doc.setFillColor(8,12,22);
+        if(doc.setGState) doc.setGState(new doc.GState({opacity:0.6}));
+        doc.roundedRect(boxX, boxY, boxW, boxH, 1.3, 1.3, 'F');
+        if(doc.setGState) doc.setGState(new doc.GState({opacity:1}));
+        doc.setTextColor(255,255,255);
+      } else {
+        doc.setTextColor(110,110,110);
+      }
+      doc.text(label, boxX + boxW/2, boxY + boxH/2 + 1.1, { align:'center' });
+      doc.restoreGraphicsState();
+    }
+  }
+
+  async function addImagePage(doc, item, isFirstPage){
+    const { img, url, w:rawW, h:rawH } = await loadImage(item.file);
+    const rotated = item.rotation === 90 || item.rotation === 270;
+    const w = rotated ? rawH : rawW;
+    const h = rotated ? rawW : rawH;
+    const margin = parseInt(marginSel.value, 10);
+    const quality = parseFloat(qualitySel.value);
+    let pageW, pageH;
+    const fixedDims = pageDims();
+    if(!fixedDims){
+      const mmPerPx = 25.4/96;
+      pageW = w*mmPerPx; pageH = h*mmPerPx;
+    } else {
+      [pageW, pageH] = fixedDims;
+    }
+    // Halaman pertama sudah dibuat dengan ukuran yang benar sejak dokumen dibuat
+    // (lihat firstPageFormat) — jadi di sini cukup addPage untuk halaman ke-2 dst.
+    if(!isFirstPage) doc.addPage([pageW, pageH]);
+
+    let drawW, drawH;
+    if(!fixedDims){ drawW = pageW; drawH = pageH; }
+    else {
+      const availW = pageW - margin*2, availH = pageH - margin*2;
+      const ratio = Math.min(availW/w, availH/h);
+      drawW = w*ratio; drawH = h*ratio;
+    }
+    const x = (pageW-drawW)/2, y = (pageH-drawH)/2;
+    const fmt = item.file.type.includes('png') && item.rotation === 0 ? 'PNG' : 'JPEG';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+    ctx.save();
+    ctx.translate(w/2, h/2);
+    ctx.rotate(item.rotation * Math.PI/180);
+    ctx.drawImage(img, -rawW/2, -rawH/2);
+    ctx.restore();
+    const dataUrl = canvas.toDataURL(fmt === 'PNG' ? 'image/png':'image/jpeg', quality);
+    doc.addImage(dataUrl, fmt, x, y, drawW, drawH);
+    URL.revokeObjectURL(url);
+
+    // fullBleed = foto menutupi seluruh halaman (mode "menyesuaikan" atau margin 0mm)
+    const fullBleed = !fixedDims || margin === 0;
+    decorate(doc, pageW, pageH, { imageBottom: y+drawH, imageCenterX: x+drawW/2, fullBleed });
+  }
+
+  function addTextPages(doc, text, isFirstPage){
+    const dims = pageDims() || [210,297];
+    const [pageW, pageH] = dims;
+    if(!isFirstPage) doc.addPage([pageW, pageH]);
+    const margin = 18;
+    doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(20,20,20);
+    const lines = doc.splitTextToSize(text || '(dokumen kosong)', pageW-margin*2);
+    const lineHeight = 5.6; let y = margin;
+    lines.forEach(line=>{
+      if(y > pageH-margin){ decorate(doc, pageW, pageH); doc.addPage([pageW,pageH]); y = margin; }
+      doc.text(line, margin, y); y += lineHeight;
+    });
+    decorate(doc, pageW, pageH);
+  }
+
+  function baseName(name){ return name.replace(/\.[^/.]+$/, ''); }
+
+  async function buildPdfForItem(item){
+    const dims = await firstPageFormat(item);
+    const doc = new jsPDF({ unit:'mm', format:dims });
+    if(item.type === 'img') await addImagePage(doc, item, true);
+    else if(item.type === 'txt') addTextPages(doc, await readAsText(item.file), true);
+    else if(item.type === 'doc') addTextPages(doc, await docxToText(item.file), true);
+    return doc;
+  }
+
+  async function convert(){
+    if(!files.length) return;
+    convertBtn.disabled = true;
+    progressWrap.classList.add('show');
+    log('Mulai membuat PDF (' + mode + ')…');
+    try{
+      if(mode === 'separate'){
+        for(let i=0;i<files.length;i++){
+          progressLabel.textContent = 'Memproses ' + (i+1) + ' / ' + files.length + '…';
+          progressBar.style.width = Math.round((i/files.length)*100) + '%';
+          const doc = await buildPdfForItem(files[i]);
+          doc.save(baseName(files[i].file.name) + '-SIAHAAN22.pdf');
+          log('Selesai: ' + files[i].file.name + '.pdf');
+          await new Promise(r=>setTimeout(r,120));
+        }
+        progressBar.style.width = '100%';
+      } else {
+        const dims = await firstPageFormat(files[0]);
+        const doc = new jsPDF({ unit:'mm', format:dims });
+        for(let i=0;i<files.length;i++){
+          progressLabel.textContent = 'Menggabung ' + (i+1) + ' / ' + files.length + '…';
+          progressBar.style.width = Math.round((i/files.length)*100) + '%';
+          const item = files[i]; const isFirst = i===0;
+          if(item.type === 'img') await addImagePage(doc, item, isFirst);
+          else if(item.type === 'txt') addTextPages(doc, await readAsText(item.file), isFirst);
+          else if(item.type === 'doc') addTextPages(doc, await docxToText(item.file), isFirst);
+          log('Ditambahkan ke PDF: ' + item.file.name);
+        }
+        progressBar.style.width = '100%';
+        const outName = sanitizeName(fileNameInput.value);
+        doc.save(outName + '.pdf');
+        log('PDF gabungan berhasil dibuat: ' + outName + '.pdf');
+      }
+      progressLabel.textContent = 'Selesai.';
+      showToast('PDF berhasil dibuat & diunduh');
+    } catch(err){
+      console.error(err);
+      log('Terjadi error: ' + err.message, true);
+      showToast('Gagal membuat PDF: ' + err.message, true);
+    } finally {
+      convertBtn.disabled = files.length === 0;
+      setTimeout(()=>{ progressWrap.classList.remove('show'); progressBar.style.width='0%'; }, 1400);
+    }
+  }
+  convertBtn.addEventListener('click', convert);
+
+  /* ===================== PDF -> TEKS ===================== */
+  if(window.pdfjsLib){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+  }
+
+  const pdfDropzone = document.getElementById('pdfDropzone');
+  const pdfTextInput = document.getElementById('pdfTextInput');
+  const pdfTextStatus = document.getElementById('pdfTextStatus');
+  const pdfTextResult = document.getElementById('pdfTextResult');
+  const pdfTextArea = document.getElementById('pdfTextArea');
+  const pdfTextLabel = document.getElementById('pdfTextLabel');
+  const copyTextBtn = document.getElementById('copyTextBtn');
+  const downloadTxtBtn = document.getElementById('downloadTxtBtn');
+  const rebuildPdfBtn = document.getElementById('rebuildPdfBtn');
+  const scanHint = document.getElementById('scanHint');
+  const ocrBtn = document.getElementById('ocrBtn');
+  const downloadImagesBtn = document.getElementById('downloadImagesBtn');
+
+  let currentPdfBaseName = 'dokumen';
+  let currentPdfDoc = null;
+  let currentPdfNumPages = 0;
+
+  async function renderPageCanvas(pdf, pageNum, scale){
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: scale || 2 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx2d = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx2d, viewport }).promise;
+    return canvas;
+  }
+
+  pdfDropzone.addEventListener('click', ()=> pdfTextInput.click());
+  pdfTextInput.addEventListener('change', (e)=>{
+    if(e.target.files && e.target.files[0]) handlePdfFile(e.target.files[0]);
+    pdfTextInput.value = '';
+  });
+  ['dragenter','dragover'].forEach(ev=> pdfDropzone.addEventListener(ev, e=>{ e.preventDefault(); pdfDropzone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev=> pdfDropzone.addEventListener(ev, e=>{ e.preventDefault(); pdfDropzone.classList.remove('drag'); }));
+  pdfDropzone.addEventListener('drop', e=>{
+    if(e.dataTransfer.files && e.dataTransfer.files[0]) handlePdfFile(e.dataTransfer.files[0]);
+  });
+
+  async function handlePdfFile(file){
+    if(!file.name.toLowerCase().endsWith('.pdf')){
+      showToast('Pilih file berformat .pdf ya', true);
+      return;
+    }
+    if(!window.pdfjsLib){
+      showToast('Gagal memuat pustaka pembaca PDF. Cek koneksi internet.', true);
+      return;
+    }
+    currentPdfBaseName = baseName(file.name);
+    pdfTextResult.style.display = 'none';
+    scanHint.style.display = 'none';
+    pdfTextStatus.style.display = 'block';
+    pdfTextStatus.textContent = 'Membaca ' + file.name + '…';
+    log('Membaca PDF: ' + file.name);
+    try{
+      const buf = await readAsArrayBuffer(file);
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      currentPdfDoc = pdf;
+      currentPdfNumPages = pdf.numPages;
+      let fullText = '';
+      for(let i=1; i<=pdf.numPages; i++){
+        pdfTextStatus.textContent = 'Mengambil teks halaman ' + i + ' / ' + pdf.numPages + '…';
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(it=> it.str).join(' ').replace(/\s+/g,' ').trim();
+        fullText += (i > 1 ? '\n\n--- Halaman ' + i + ' ---\n\n' : '') + pageText;
+      }
+      pdfTextStatus.style.display = 'none';
+      pdfTextResult.style.display = 'block';
+      pdfTextArea.value = fullText.trim();
+      if(!fullText.trim()){
+        pdfTextLabel.textContent = 'Tidak ada teks terbaca — bisa diketik manual, atau coba OCR di bawah';
+        scanHint.style.display = 'block';
+      } else {
+        pdfTextLabel.textContent = 'Isi teks dari ' + pdf.numPages + ' halaman (bisa diedit bebas)';
+      }
+      log('Berhasil mengambil teks dari ' + pdf.numPages + ' halaman: ' + file.name);
+      showToast('Teks berhasil diambil dari PDF');
+    } catch(err){
+      console.error(err);
+      pdfTextStatus.style.display = 'none';
+      log('Gagal membaca PDF: ' + err.message, true);
+      showToast('Gagal membaca PDF: ' + err.message, true);
+    }
+  }
+
+  copyTextBtn.addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(pdfTextArea.value);
+      showToast('Teks disalin ke clipboard');
+    } catch(err){
+      pdfTextArea.select();
+      document.execCommand('copy');
+      showToast('Teks disalin ke clipboard');
+    }
+  });
+
+  downloadTxtBtn.addEventListener('click', ()=>{
+    const blob = new Blob([pdfTextArea.value], { type:'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = currentPdfBaseName + '-SIAHAAN22.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    log('Teks diunduh sebagai .txt: ' + currentPdfBaseName + '-SIAHAAN22.txt');
+    showToast('File .txt berhasil diunduh');
+  });
+
+  rebuildPdfBtn.addEventListener('click', ()=>{
+    const text = pdfTextArea.value;
+    if(!text.trim()){
+      showToast('Kotak teksnya masih kosong', true);
+      return;
+    }
+    try{
+      const dims = pageDims() || [210,297];
+      const doc = new jsPDF({ unit:'mm', format:dims });
+      addTextPages(doc, text, true);
+      const outName = currentPdfBaseName + '-edit-SIAHAAN22';
+      doc.save(outName + '.pdf');
+      log('PDF baru dibuat dari teks yang diedit: ' + outName + '.pdf');
+      showToast('PDF baru berhasil dibuat & diunduh');
+    } catch(err){
+      console.error(err);
+      log('Gagal membuat PDF dari teks: ' + err.message, true);
+      showToast('Gagal membuat PDF: ' + err.message, true);
+    }
+  });
+
+  ocrBtn.addEventListener('click', async ()=>{
+    if(!currentPdfDoc){ showToast('Unggah PDF dulu ya', true); return; }
+    if(!window.Tesseract){ showToast('Gagal memuat pustaka OCR. Cek koneksi internet.', true); return; }
+    ocrBtn.disabled = true;
+    downloadImagesBtn.disabled = true;
+    pdfTextStatus.style.display = 'block';
+    pdfTextStatus.textContent = 'Menyiapkan OCR…';
+    log('Mulai OCR untuk ' + currentPdfNumPages + ' halaman…');
+    try{
+      const worker = Tesseract.createWorker({
+        logger: m=>{
+          if(m.status && typeof m.progress === 'number'){
+            pdfTextStatus.textContent = 'OCR: ' + m.status + ' (' + Math.round(m.progress*100) + '%)';
+          }
+        }
+      });
+      await worker.load();
+      await worker.loadLanguage('ind+eng');
+      await worker.initialize('ind+eng');
+
+      let ocrText = '';
+      for(let i=1; i<=currentPdfNumPages; i++){
+        pdfTextStatus.textContent = 'OCR halaman ' + i + ' / ' + currentPdfNumPages + '…';
+        const canvas = await renderPageCanvas(currentPdfDoc, i, 2);
+        const { data } = await worker.recognize(canvas);
+        ocrText += (i > 1 ? '\n\n--- Halaman ' + i + ' ---\n\n' : '') + (data.text || '').trim();
+      }
+      await worker.terminate();
+
+      pdfTextArea.value = ocrText.trim();
+      pdfTextLabel.textContent = 'Hasil baca OCR dari ' + currentPdfNumPages + ' halaman (bisa diedit bebas)';
+      scanHint.style.display = 'none';
+      pdfTextStatus.style.display = 'none';
+      log('OCR selesai untuk ' + currentPdfNumPages + ' halaman.');
+      showToast('Teks dari foto berhasil dibaca (OCR)');
+    } catch(err){
+      console.error(err);
+      pdfTextStatus.style.display = 'none';
+      log('OCR gagal: ' + err.message, true);
+      showToast('OCR gagal: ' + err.message, true);
+    } finally {
+      ocrBtn.disabled = false;
+      downloadImagesBtn.disabled = false;
+    }
+  });
+
+  downloadImagesBtn.addEventListener('click', async ()=>{
+    if(!currentPdfDoc){ showToast('Unggah PDF dulu ya', true); return; }
+    if(!window.JSZip){ showToast('Gagal memuat pustaka ZIP. Cek koneksi internet.', true); return; }
+    ocrBtn.disabled = true;
+    downloadImagesBtn.disabled = true;
+    pdfTextStatus.style.display = 'block';
+    log('Menyiapkan foto dari ' + currentPdfNumPages + ' halaman…');
+    try{
+      const zip = new JSZip();
+      for(let i=1; i<=currentPdfNumPages; i++){
+        pdfTextStatus.textContent = 'Menyiapkan foto halaman ' + i + ' / ' + currentPdfNumPages + '…';
+        const canvas = await renderPageCanvas(currentPdfDoc, i, 2);
+        const blob = await new Promise(res=> canvas.toBlob(res, 'image/jpeg', 0.92));
+        zip.file('halaman-' + String(i).padStart(2,'0') + '.jpg', blob);
+      }
+      pdfTextStatus.textContent = 'Membungkus jadi ZIP…';
+      const zipBlob = await zip.generateAsync({ type:'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url; a.download = currentPdfBaseName + '-foto-SIAHAAN22.zip';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      pdfTextStatus.style.display = 'none';
+      log('Semua halaman diunduh sebagai foto (ZIP): ' + currentPdfBaseName + '-foto-SIAHAAN22.zip');
+      showToast('Foto berhasil diunduh (.zip)');
+    } catch(err){
+      console.error(err);
+      pdfTextStatus.style.display = 'none';
+      log('Gagal membuat ZIP foto: ' + err.message, true);
+      showToast('Gagal: ' + err.message, true);
+    } finally {
+      ocrBtn.disabled = false;
+      downloadImagesBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
